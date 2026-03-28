@@ -26,12 +26,18 @@ git push -u origin main
 
 Replace the URL with your repository. Use SSH if you prefer (`git@github.com:...`).
 
-### Versioning and git tags (single source of truth)
+### Versioning and git tags
 
-The **only** place you set the release number is `config.yaml` → `version:` (Home Assistant reads it from there).
+Home Assistant reads the add-on version from `config.yaml` → `version:`. Git tags are always `v` + that value.
 
-1. Bump `version:` in `config.yaml`, commit, push to `main`.
-2. **One command** (pushes your current branch, creates tag from `config.yaml`, pushes the tag):
+**Option A — set version and release in one go** (updates `config.yaml`, commits that file, pushes branch, creates tag, pushes tag):
+
+```bash
+./scripts/release.sh 1.0.4
+# same: ./scripts/release.sh --version 1.0.4   or   ./scripts/release.sh v1.0.4
+```
+
+**Option B — version already in `config.yaml`** (only tag + push):
 
 ```bash
 ./scripts/release.sh
@@ -43,20 +49,27 @@ If the branch is already on GitHub and you only want to tag the current commit:
 ./scripts/release.sh --no-push-branch
 ```
 
-Dry-run (nothing is pushed or tagged):
+Dry-run (no file changes, commits, pushes, or tags):
 
 ```bash
+./scripts/release.sh 1.0.4 --dry-run
 ./scripts/release.sh --dry-run
 ```
 
-Manual two-step equivalent:
+Only write `config.yaml` (no git operations):
+
+```bash
+python3 scripts/tag_from_config.py --set-version 1.0.4
+```
+
+Manual tag after editing `config.yaml` yourself:
 
 ```bash
 python3 scripts/tag_from_config.py
-git push origin TAG   # the script prints the exact tag, e.g. v1.0.3
+git push origin TAG   # script prints the tag, e.g. v1.0.3
 ```
 
-Check what would be tagged without creating a tag:
+Preview tag from current `config.yaml`:
 
 ```bash
 python3 scripts/tag_from_config.py --dry-run

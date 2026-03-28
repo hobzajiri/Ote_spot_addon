@@ -14,6 +14,31 @@ ROOT = Path(__file__).resolve().parent.parent
 CONFIG = ROOT / "config.yaml"
 
 
+def normalize_release_version(raw: str) -> str:
+    s = raw.strip()
+    if s.startswith(("v", "V")):
+        s = s[1:].strip()
+    if not s or not re.match(r"^[0-9][0-9A-Za-z.+-]*$", s):
+        raise ValueError(f"Invalid version string: {raw!r}")
+    return s
+
+
+def write_version_to_config(new_version: str) -> None:
+    text = CONFIG.read_text(encoding="utf-8")
+    replacement = f'version: "{new_version}"'
+    new_text, count = re.subn(
+        r"^version:\s*.+$",
+        replacement,
+        text,
+        count=1,
+        flags=re.MULTILINE,
+    )
+    if count != 1:
+        print("Could not find a single version: line in config.yaml", file=sys.stderr)
+        sys.exit(1)
+    CONFIG.write_text(new_text, encoding="utf-8", newline="\n")
+
+
 def read_version_from_config() -> str:
     text = CONFIG.read_text(encoding="utf-8")
     m = re.search(r"^version:\s*(.+)$", text, re.MULTILINE)
@@ -57,7 +82,26 @@ def main() -> None:
         action="store_true",
         help="Print only the tag name (e.g. v1.0.2) to stdout. For shell scripts.",
     )
+    parser.add_argument(
+        "--set-version",
+        metavar="VER",
+        help='Write version: "VER" into config.yaml (strip leading "v" if present).',
+    )
     args = parser.parse_args()
+
+    if args.set_version:
+        try:
+            normalized = normalize_release_version(args.set_version)
+        except ValueError as exc:
+            print(exc, file=sys.stderr)
+            sys.exit(1)
+        if args.dry_run:
+            print(f"Would set config.yaml to version: {normalized!r}")
+            return
+        write_version_to_config(normalized)
+        print(f"Updated config.yaml to version {normalized!r}")
+        return
+
     version = read_version_from_config()
     tag = f"v{version}"
 
