@@ -1,0 +1,25 @@
+name: OTE Spot Prices
+version: "1.0.2"
+slug: ote_spot_prices
+description: Fetches OTE 15-minute spot prices and exposes them as a Home Assistant sensor.
+arch:
+  - amd64
+  - aarch64
+  - armv7
+startup: services
+boot: auto
+init: false
+homeassistant_api: true
+options:
+  ote_api_url: "https://spotovaelektrina.cz/api/v1/price/get-prices-json-qh"
+  update_interval_seconds: 900
+  request_timeout_seconds: 20
+  local_timezone: "Europe/Prague"
+  # Daily API refresh at this local time (HH:MM, 24h). Empty = fetch from API every update_interval_seconds.
+  daily_refresh_time: "13:05"
+schema:
+  ote_api_url: str
+  update_interval_seconds: int
+  request_timeout_seconds: int
+  local_timezone: str
+  daily_refresh_time: str?
