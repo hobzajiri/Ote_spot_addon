@@ -108,6 +108,7 @@ The add-on creates/updates entity `sensor.ote_spot_15min` via the internal Super
 - `build.yaml` - Official HA base image per architecture (required for Supervisor builds).
 - `config.yaml` - Add-on metadata.
 - `Dockerfile` - Container build (Alpine + `py3-requests`).
+- `rootfs/etc/services.d/ote-spot/run` - s6 longrun so logs appear in the add-on log (unbuffered Python).
 - `run.py` - Main update loop.
 
 ## Home Assistant Sensor

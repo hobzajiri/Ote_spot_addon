@@ -1,5 +1,5 @@
 name: OTE Spot Prices
-version: "1.0.5"
+version: "1.0.6"
 slug: ote_spot_prices
 description: Fetches OTE 15-minute spot prices and exposes them as a Home Assistant sensor.
 arch:
