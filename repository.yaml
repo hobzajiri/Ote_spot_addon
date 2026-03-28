@@ -1,0 +1,4 @@
+# Required by Home Assistant Supervisor for every custom add-on Git repository.
+# Without this file, Supervisor reports: "is not a valid add-on repository".
+# Docs: https://developers.home-assistant.io/docs/add-ons/repository
+name: OTE Spot Prices

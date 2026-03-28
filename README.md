@@ -81,10 +81,12 @@ On GitHub, when you push a tag `v*`, the workflow **Verify version on tag** fail
 
 Requires **Home Assistant OS** or **Supervised** (Supervisor). Not available on plain Container/Core-only installs in the same way.
 
+This repo includes **`repository.yaml`** in the root. Supervisor **requires** that file for custom Git repositories; without it you get *“is not a valid add-on repository”* even if `config.yaml` and `Dockerfile` exist.
+
 1. **Settings → Add-ons → Add-on Store**.
 2. Open the **⋮** menu (top right) → **Repositories**.
 3. Add your GitHub repo URL, e.g. `https://github.com/YOUR_USER/YOUR_REPO`  
-   Use the default branch (usually `main`).
+   Use the default branch (usually `main`). No trailing slash; `https://` is fine.
 4. After refresh, find **OTE Spot Prices** (`slug`: `ote_spot_prices`), **Install**, then **Start**.
 5. Optional: open **Configuration** and set options (URL, intervals, timezone, daily refresh time).
 
@@ -100,6 +102,7 @@ The add-on creates/updates entity `sensor.ote_spot_15min` via the internal Super
 
 ## Files
 
+- `repository.yaml` - Store metadata required by Supervisor for custom Git repos.
 - `config.yaml` - Add-on metadata.
 - `Dockerfile` - Python runtime + dependencies.
 - `run.py` - Main update loop.
