@@ -92,6 +92,8 @@ This repo includes **`repository.yaml`** in the root. Supervisor **requires** th
 
 The add-on creates/updates entity `sensor.ote_spot_15min` via the internal Supervisor API.
 
+**Build failures on Supervisor:** the image must use Home Assistant base images from `build.yaml` and install dependencies with **`apk`** (Alpine), not `pip` on a Debian `python:*` image. See `Dockerfile` and `build.yaml` in this repo.
+
 ## Features
 
 - Fetches OTE spot prices in 15-minute slots.
@@ -103,8 +105,9 @@ The add-on creates/updates entity `sensor.ote_spot_15min` via the internal Super
 ## Files
 
 - `repository.yaml` - Store metadata required by Supervisor for custom Git repos.
+- `build.yaml` - Official HA base image per architecture (required for Supervisor builds).
 - `config.yaml` - Add-on metadata.
-- `Dockerfile` - Python runtime + dependencies.
+- `Dockerfile` - Container build (Alpine + `py3-requests`).
 - `run.py` - Main update loop.
 
 ## Home Assistant Sensor
