@@ -1,0 +1,17 @@
+# Ensures git tag v* matches version: in config.yaml (single source of truth: config.yaml).
+name: Verify version on tag
+
+on:
+  push:
+    tags:
+      - "v*"
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check config.yaml version matches tag
+        env:
+          GITHUB_REF_NAME: ${{ github.ref_name }}
+        run: python3 scripts/tag_from_config.py --verify-matches-tag

@@ -26,6 +26,44 @@ git push -u origin main
 
 Replace the URL with your repository. Use SSH if you prefer (`git@github.com:...`).
 
+### Versioning and git tags (single source of truth)
+
+The **only** place you set the release number is `config.yaml` → `version:` (Home Assistant reads it from there).
+
+1. Bump `version:` in `config.yaml`, commit, push to `main`.
+2. **One command** (pushes your current branch, creates tag from `config.yaml`, pushes the tag):
+
+```bash
+./scripts/release.sh
+```
+
+If the branch is already on GitHub and you only want to tag the current commit:
+
+```bash
+./scripts/release.sh --no-push-branch
+```
+
+Dry-run (nothing is pushed or tagged):
+
+```bash
+./scripts/release.sh --dry-run
+```
+
+Manual two-step equivalent:
+
+```bash
+python3 scripts/tag_from_config.py
+git push origin TAG   # the script prints the exact tag, e.g. v1.0.3
+```
+
+Check what would be tagged without creating a tag:
+
+```bash
+python3 scripts/tag_from_config.py --dry-run
+```
+
+On GitHub, when you push a tag `v*`, the workflow **Verify version on tag** fails if the tag does not match `version:` on that commit.
+
 ## Install in Home Assistant (Add-on Store)
 
 Requires **Home Assistant OS** or **Supervised** (Supervisor). Not available on plain Container/Core-only installs in the same way.
