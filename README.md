@@ -135,23 +135,98 @@ Tomorrow’s prices are not in the API until OTE publishes them (often around 13
 
 ### Chart example (ApexCharts card)
 
-Requires [ApexCharts card](https://github.com/RomRider/apexcharts-card). Example: line chart of **tomorrow** in CZK/kWh:
+Requires [ApexCharts card](https://github.com/RomRider/apexcharts-card).
+
+**Rolling 24 hours forward from “now”** (from the **start of the current minute** through the next 24 h — `span.start: minute` + `graph_span: 24h` in `apexcharts-card`):
+
+- Without `span`, the default `graph_span: 24h` is the **past** 24 hours, not the future.
+- **Column chart:** every **15-minute** step in the window gets one bar. Known prices come from **today + tomorrow**; any slot without data (e.g. zítra ještě není v API) uses **0** so the chart stays full.
+
+```yaml
+type: custom:apexcharts-card
+header:
+  title: Spot (24 h dopředu)
+graph_span: 24h
+span:
+  start: minute
+now:
+  show: true
+  label: Teď
+update_interval: 5min
+series:
+  - entity: sensor.ote_spot_15min
+    type: column
+    name: CZK/kWh
+    data_generator: |
+      const t1 = end.getTime();
+      const STEP = 15 * 60 * 1000;
+      const today = entity.attributes.forecast_today_15min || [];
+      const tomorrow = entity.attributes.forecast_tomorrow_15min || [];
+      const bySlot = new Map();
+      for (const r of [...today, ...tomorrow]) {
+        bySlot.set(new Date(r.start).getTime(), Number(r.price_kwh));
+      }
+      let m = moment(start).seconds(0).milliseconds(0);
+      const rem = m.minute() % 15;
+      if (rem) m = m.subtract(rem, 'minutes');
+      const out = [];
+      for (let t = m.valueOf(); t < t1; t += STEP) {
+        let y = 0;
+        if (bySlot.has(t)) y = bySlot.get(t);
+        else {
+          for (const [ts, v] of bySlot) {
+            if (ts >= t && ts < t + STEP) {
+              y = v;
+              break;
+            }
+          }
+        }
+        out.push([t, y]);
+      }
+      return out;
+```
+
+Calendar **tomorrow only** (needs a fixed day window — here still **columns** and **0** for missing slots; adjust `span` if you want a different day):
 
 ```yaml
 type: custom:apexcharts-card
 header:
   title: Spot zítra (15 min)
 graph_span: 24h
+span:
+  start: day
+  offset: 1d
 series:
   - entity: sensor.ote_spot_15min
-    type: line
+    type: column
     name: CZK/kWh
     data_generator: |
+      const t1 = end.getTime();
+      const STEP = 15 * 60 * 1000;
       const rows = entity.attributes.forecast_tomorrow_15min || [];
-      return rows.map((r) => [new Date(r.start).getTime(), r.price_kwh]);
+      const bySlot = new Map();
+      for (const r of rows) {
+        bySlot.set(new Date(r.start).getTime(), Number(r.price_kwh));
+      }
+      let m = moment(start).seconds(0).milliseconds(0);
+      const rem = m.minute() % 15;
+      if (rem) m = m.subtract(rem, 'minutes');
+      const out = [];
+      for (let t = m.valueOf(); t < t1; t += STEP) {
+        let y = 0;
+        if (bySlot.has(t)) y = bySlot.get(t);
+        else {
+          for (const [ts, v] of bySlot) {
+            if (ts >= t && ts < t + STEP) {
+              y = v;
+              break;
+            }
+          }
+        }
+        out.push([t, y]);
+      }
+      return out;
 ```
-
-For **today + tomorrow** in one chart, use `forecast_15min` in `data_generator` the same way (`r.start`, `r.price_kwh`).
 
 ## Notes
 
