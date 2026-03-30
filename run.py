@@ -99,6 +99,57 @@ def next_local_api_slot(after: datetime, hour: int, minute: int) -> datetime:
     return slot + timedelta(days=1)
 
 
+# When daily_refresh_time is set: retry delays (local wall clock).
+API_RETRY_AFTER_FAILURE_MINUTES = 5
+API_RETRY_WAITING_TOMORROW_MINUTES = 15
+
+
+def schedule_next_api_fetch(
+    after_local: datetime,
+    hour: int,
+    minute: int,
+    fetch_ok: bool,
+    push_ok: bool,
+    records: list[dict[str, Any]] | None,
+) -> datetime:
+    """
+    After an API attempt at or past the scheduled slot, decide the next HTTP fetch time.
+
+    The spotovaelektrina feed often publishes hoursTomorrow a bit after 13:00 local; a single
+    fetch at 13:05 can see empty tomorrow. Retrying every API_RETRY_WAITING_TOMORROW_MINUTES
+    until tomorrow slots appear avoids sleeping +24 h with has_tomorrow_prices false (previously
+    we advanced to the next daily_refresh_time even when tomorrow was still empty).
+    """
+    if not fetch_ok or not push_ok:
+        nxt = after_local + timedelta(minutes=API_RETRY_AFTER_FAILURE_MINUTES)
+        print(
+            f"[INFO] Next scheduled API fetch (local): {nxt.isoformat()} "
+            "(retry after failed API fetch or HA push)"
+        )
+        return nxt
+
+    if records is None:
+        nxt = after_local + timedelta(minutes=API_RETRY_AFTER_FAILURE_MINUTES)
+        print(
+            f"[INFO] Next scheduled API fetch (local): {nxt.isoformat()} "
+            "(retry: missing records)"
+        )
+        return nxt
+
+    _, _, _, tomorrow_fc = split_forecast_today_tomorrow(records)
+    if len(tomorrow_fc) == 0:
+        nxt = after_local + timedelta(minutes=API_RETRY_WAITING_TOMORROW_MINUTES)
+        print(
+            f"[INFO] Next scheduled API fetch (local): {nxt.isoformat()} "
+            "(tomorrow's prices not in feed yet; retrying in 15 minutes)"
+        )
+        return nxt
+
+    nxt = next_local_api_slot(after_local + timedelta(minutes=1), hour, minute)
+    print(f"[INFO] Next scheduled API fetch (local): {nxt.isoformat()}")
+    return nxt
+
+
 def build_headers() -> dict[str, str]:
     if not SUPERVISOR_TOKEN:
         raise RuntimeError("Missing SUPERVISOR_TOKEN environment variable.")
@@ -355,15 +406,19 @@ def run() -> None:
 
         if now_local >= next_api_at:
             fetched = fetch_ote_data()
-            if fetched is not None:
-                records = fetched
-                if push_sensor_state(records):
+            fetch_ok = fetched is not None
+            push_ok = False
+            if fetch_ok:
+                records = fetched  # fetch_ok implies fetched is not None
+                push_ok = push_sensor_state(records)
+                if push_ok:
                     print(
                         f"[INFO] Updated {SENSOR_ENTITY_ID}: "
                         f"{pick_current_slot(records)['price_kwh']} CZK/kWh"
                     )
-            next_api_at = next_api_at + timedelta(days=1)
-            print(f"[INFO] Next scheduled API fetch (local): {next_api_at.isoformat()}")
+            next_api_at = schedule_next_api_fetch(
+                now_local, hour, minute, fetch_ok, push_ok, records if fetch_ok else None
+            )
             continue
 
         if records is not None and push_sensor_state(records):

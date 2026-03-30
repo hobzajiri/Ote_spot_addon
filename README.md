@@ -131,7 +131,9 @@ Key attributes:
 - `current_price_mwh`
 - `last_update_utc`
 
-Tomorrow’s prices are not in the API until OTE publishes them (often around 13:00 local). After the add-on refreshes, `forecast_tomorrow_15min` fills with up to 96 quarter-hour points.
+Tomorrow’s prices are not in the API until OTE publishes them (often around 13:00 local, sometimes a few minutes later). The add-on calls the same JSON endpoint as your browser; there is no separate “tomorrow-only” URL—`hoursTomorrow` is either filled or empty in that response.
+
+With `daily_refresh_time` set, the add-on **retries** every 15 minutes if the fetch succeeds but tomorrow is still empty, until `has_tomorrow_prices` becomes true; it retries every 5 minutes after a failed fetch or failed HA push. Once tomorrow’s data is present, the next API fetch is scheduled at the following day’s `daily_refresh_time` (normal 24 h cadence).
 
 ### Chart example (ApexCharts card)
 
@@ -237,6 +239,6 @@ series:
   - `update_interval_seconds` (default `900`) — how often to push state to HA; with `daily_refresh_time` set, this is also the wake interval between scheduled API fetches (cache refresh to HA).
   - `request_timeout_seconds` (default `20`)
   - `local_timezone` (default `Europe/Prague`)
-  - `daily_refresh_time` (default `13:05`, format `HH:MM`) — local time for **daily API fetch**; leave empty to fetch from the API on **every** `update_interval_seconds` instead.
+  - `daily_refresh_time` (default `13:05`, format `HH:MM`) — local time for **daily API fetch**; leave empty to fetch from the API on **every** `update_interval_seconds` instead. If tomorrow is still missing after that fetch, the add-on polls again every 15 minutes until the feed contains tomorrow’s prices (see note above).
 - For local Docker testing, env vars are still supported:
   - `OTE_API_URL`, `UPDATE_INTERVAL_SECONDS`, `REQUEST_TIMEOUT_SECONDS`, `LOCAL_TIMEZONE`, `DAILY_REFRESH_TIME` (empty = off)
